@@ -1,0 +1,66 @@
+package <%= packageName %>;
+
+<% if (hasRest) { %>
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;<% } %>
+<% if (hasLombok) { %>
+import lombok.RequiredArgsConstructor;<% } %>
+<% if (hasJpa) { %>
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;<% } %>
+
+import java.util.List;
+
+<% if (hasLombok) { %>
+@RequiredArgsConstructor<% } %>
+@RestController
+@RequestMapping("/api/<%= entityNameLower %>")
+public class <%= className %> {
+
+    <% if (!hasLombok) { %>
+    private final <%= entityName %>Service <%= entityNameLower %>Service;
+    
+    public <%= className %>(<%= entityName %>Service <%= entityNameLower %>Service) {
+        this.<%= entityNameLower %>Service = <%= entityNameLower %>Service;
+    }
+    <% } else { %>
+    private final <%= entityName %>Service <%= entityNameLower %>Service;
+    <% } %>
+
+    @PostMapping
+    public ResponseEntity<<%= entityName %>Response> create(@RequestBody <%= entityName %>Request request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(<%= entityNameLower %>Service.create(request));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<<%= entityName %>Response> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(<%= entityNameLower %>Service.getById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<<%= entityName %>Response>> getAll() {
+        return ResponseEntity.ok(<%= entityNameLower %>Service.getAll());
+    }
+
+    <% if (hasJpa) { %>
+    @GetMapping("/page")
+    public ResponseEntity<Page<<%= entityName %>Response>> getPage(Pageable pageable) {
+        return ResponseEntity.ok(<%= entityNameLower %>Service.getPage(pageable));
+    }
+    <% } %>
+
+    @PutMapping("/{id}")
+    public ResponseEntity<<%= entityName %>Response> update(
+            @PathVariable Long id,
+            @RequestBody <%= entityName %>Request request) {
+        return ResponseEntity.ok(<%= entityNameLower %>Service.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        <%= entityNameLower %>Service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}

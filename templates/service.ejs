@@ -1,0 +1,24 @@
+package <%= packageName %>;
+
+<% if (hasJpa) { %>
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;<% } %>
+
+import java.util.List;
+
+public interface <%= className %> {
+
+    <%= entityName %>Response create(<%= entityName %>Request request);
+
+    <%= entityName %>Response getById(Long id);
+
+    List<<%= entityName %>Response> getAll();
+
+    <% if (hasJpa) { %>
+    Page<<%= entityName %>Response> getPage(Pageable pageable);
+    <% } %>
+
+    <%= entityName %>Response update(Long id, <%= entityName %>Request request);
+
+    void delete(Long id);
+}

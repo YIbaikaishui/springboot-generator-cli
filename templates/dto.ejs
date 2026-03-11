@@ -1,0 +1,53 @@
+package <%= packageName %>;
+
+<% if (hasLombok) { %>
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;<% } %>
+
+import java.time.LocalDateTime;
+
+<% if (hasLombok) { %>
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder<% } %>
+public class <%= className %> {
+
+    <% if (fields && fields.length > 0) { %>
+    <% fields.forEach(function(field) { %>
+    private <%= field.type %> <%= field.name %>;
+    <% }); %>
+    <% } else { %>
+    // TODO: Add your fields here
+    private String name;
+    <% } %>
+
+    <% if (!hasLombok) { %>
+    public <%= className %>() {}
+
+    // Getters and Setters
+    <% if (fields && fields.length > 0) { %>
+    <% fields.forEach(function(field) { %>
+
+    public <%= field.type %> get<%= field.name.charAt(0).toUpperCase() + field.name.slice(1) %>() {
+        return <%= field.name %>;
+    }
+
+    public void set<%= field.name.charAt(0).toUpperCase() + field.name.slice(1) %>(<%= field.type %> <%= field.name %>) {
+        this.<%= field.name %> = <%= field.name %>;
+    }
+    <% }); %>
+    <% } else { %>
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+    <% } %>
+    <% } %>
+}

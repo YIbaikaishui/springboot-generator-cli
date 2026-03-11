@@ -1,0 +1,29 @@
+package <%= packageName %>;
+
+<% if (hasLombok) { %>
+import lombok.Getter;<% } %>
+
+@Getter
+public class <%= className %> extends RuntimeException {
+
+    private final String code;
+    private final int status;
+
+    public <%= className %>(String message) {
+        super(message);
+        this.code = "<%= classNameUpper %>_ERROR";
+        this.status = 400;
+    }
+
+    public <%= className %>(String message, String code) {
+        super(message);
+        this.code = code;
+        this.status = 400;
+    }
+
+    public <%= className %>(String message, String code, int status) {
+        super(message);
+        this.code = code;
+        this.status = status;
+    }
+}

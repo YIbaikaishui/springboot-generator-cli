@@ -1,0 +1,80 @@
+package <%= packageName %>;
+
+<% if (hasJpa) { %>
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;<% } %>
+<% if (hasLombok) { %>
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;<% } %>
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+<% if (hasLombok) { %>
+@Service
+@RequiredArgsConstructor<% } else { %>
+@Service<% } %>
+public class <%= className %> implements <%= entityName %>Service {
+
+    private final <%= entityName %>Repository <%= entityNameLower %>Repository;
+
+    <% if (!hasLombok) { %>
+    public <%= className %>(<%= entityName %>Repository <%= entityNameLower %>Repository) {
+        this.<%= entityNameLower %>Repository = <%= entityNameLower %>Repository;
+    }
+    <% } %>
+
+    @Override
+    @Transactional
+    public <%= entityName %>Response create(<%= entityName %>Request request) {
+        <%= entityName %> entity = new <%= entityName %>();
+        // TODO: Map request to entity
+        <%= entityName %> saved = <%= entityNameLower %>Repository.save(entity);
+        return toResponse(saved);
+    }
+
+    @Override
+    public <%= entityName %>Response getById(Long id) {
+        <%= entityName %> entity = <%= entityNameLower %>Repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("<%= entityName %> not found with id: " + id));
+        return toResponse(entity);
+    }
+
+    @Override
+    public List<<%= entityName %>Response> getAll() {
+        return <%= entityNameLower %>Repository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    <% if (hasJpa) { %>
+    @Override
+    public Page<<%= entityName %>Response> getPage(Pageable pageable) {
+        return <%= entityNameLower %>Repository.findAll(pageable)
+                .map(this::toResponse);
+    }
+    <% } %>
+
+    @Override
+    @Transactional
+    public <%= entityName %>Response update(Long id, <%= entityName %>Request request) {
+        <%= entityName %> entity = <%= entityNameLower %>Repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("<%= entityName %> not found with id: " + id));
+        // TODO: Update entity from request
+        <%= entityName %> updated = <%= entityNameLower %>Repository.save(entity);
+        return toResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        <%= entityNameLower %>Repository.deleteById(id);
+    }
+
+    private <%= entityName %>Response toResponse(<%= entityName %> entity) {
+        <%= entityName %>Response response = new <%= entityName %>Response();
+        // TODO: Map entity to response
+        return response;
+    }
+}

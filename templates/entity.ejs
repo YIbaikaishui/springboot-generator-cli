@@ -1,0 +1,82 @@
+package <%= packageName %>;
+
+<% if (hasJpa) { %>
+import jakarta.persistence.*;<% } %>
+<% if (hasLombok) { %>
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;<% } %>
+
+import java.time.LocalDateTime;
+
+<% if (hasLombok) { %>
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder<% } %>
+<% if (hasJpa) { %>
+@Entity
+@Table(name = "<%= classNameLower %>s")<% } %>
+public class <%= className %> {
+
+    <% if (hasJpa) { %>
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    <% } %>
+    private Long id;
+
+    // TODO: Add your fields here
+    // Example:
+    // @Column(nullable = false)
+    // private String name;
+    //
+    // @Column(unique = true)
+    // private String email;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    <% if (!hasLombok) { %>
+    public <%= className %>() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    <% } %>
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}

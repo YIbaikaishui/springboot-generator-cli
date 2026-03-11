@@ -1,0 +1,13 @@
+package <%= packageName %>;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface <%= className %> extends JpaRepository<<%= entityName %>, Long> {
+
+    // Add custom query methods here
+    
+    // Example: List<<%= entityName %>> findByName(String name);
+    // Example: Optional<<%= entityName %>> findByCode(String code);
+}
