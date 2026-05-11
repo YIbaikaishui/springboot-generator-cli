@@ -24,6 +24,7 @@ export async function generateEntity(options: GeneratorOptions): Promise<void> {
     className: entityName,
     classNameLower: toCamelCase(entityName),
     classNameCamel: toCamelCase(entityName),
+    style: 'layered',
     packageName: module 
       ? `${packageName}.${module}.entity`
       : `${packageName}.entity`,

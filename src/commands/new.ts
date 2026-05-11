@@ -2,23 +2,43 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import path from 'path';
 import fs from 'fs';
-import { ensureDirectory, writeFile, logFileCreated } from '../utils/file.js';
-import { packageToPath } from '../utils/naming.js';
+import {
+  ensureDirectory,
+  writeFile,
+  logFileCreated,
+} from '../utils/file.js';
+import { packageToPath, toPascalCase } from '../utils/naming.js';
+import type { GeneratorStyle } from '../types/index.js';
+
+const DEFAULT_SPRING_BOOT_VERSION = '3.5.13';
+const PREVIOUS_SPRING_BOOT_VERSION = '3.4.12';
+const LTS_SPRING_BOOT_VERSION = '3.3.13';
+const DEFAULT_SPRINGDOC_VERSION = '2.8.17';
 
 interface NewProjectOptions {
   package: string;
   directory?: string;
+  style?: GeneratorStyle;
+}
+
+interface ProjectAnswers {
+  buildTool: string;
+  javaVersion: string;
+  springBootVersion: string;
+  dependencies: string[];
 }
 
 export async function newCommand(
   name: string,
-  options: NewProjectOptions
+  options: NewProjectOptions,
 ): Promise<void> {
+  const style = normalizeStyle(options.style);
+
   console.log(chalk.cyan(`Creating Spring Boot project: ${name}`));
+  console.log(chalk.gray(`Style: ${style}`));
   console.log();
 
-  // Ask for additional options
-  const answers = await inquirer.prompt([
+  const answers = await inquirer.prompt<ProjectAnswers>([
     {
       type: 'list',
       name: 'buildTool',
@@ -30,15 +50,19 @@ export async function newCommand(
       type: 'list',
       name: 'javaVersion',
       message: 'Java version:',
-      choices: ['17', '21', '11'],
-      default: '17',
+      choices: ['21', '17'],
+      default: '21',
     },
     {
       type: 'list',
       name: 'springBootVersion',
       message: 'Spring Boot version:',
-      choices: ['3.2.0', '3.1.0', '3.0.0', '2.7.0'],
-      default: '3.2.0',
+      choices: [
+        DEFAULT_SPRING_BOOT_VERSION,
+        PREVIOUS_SPRING_BOOT_VERSION,
+        LTS_SPRING_BOOT_VERSION,
+      ],
+      default: DEFAULT_SPRING_BOOT_VERSION,
     },
     {
       type: 'checkbox',
@@ -46,7 +70,7 @@ export async function newCommand(
       message: 'Select dependencies:',
       choices: [
         { name: 'Spring Web', value: 'web', checked: true },
-        { name: 'Spring Data JPA', value: 'jpa' },
+        { name: 'Spring Data JPA', value: 'jpa', checked: true },
         { name: 'Spring Data MongoDB', value: 'mongodb' },
         { name: 'Spring Data Redis', value: 'redis' },
         { name: 'Spring Security', value: 'security' },
@@ -55,20 +79,19 @@ export async function newCommand(
         { name: 'MapStruct', value: 'mapstruct' },
         { name: 'MySQL Driver', value: 'mysql' },
         { name: 'PostgreSQL Driver', value: 'postgresql' },
-        { name: 'H2 Database', value: 'h2' },
-        { name: 'OpenAPI/Swagger', value: 'openapi', checked: true },
+        { name: 'H2 Database', value: 'h2', checked: true },
+        { name: 'OpenAPI/Swagger', value: 'openapi' },
       ],
     },
   ]);
 
   const packageName = options.package || 'com.example';
-  const projectDir = options.directory 
+  const projectDir = options.directory
     ? path.join(options.directory, name)
     : path.join(process.cwd(), name);
 
-  // Check if directory exists
   if (fs.existsSync(projectDir)) {
-    const { overwrite } = await inquirer.prompt([
+    const { overwrite } = await inquirer.prompt<{ overwrite: boolean }>([
       {
         type: 'confirm',
         name: 'overwrite',
@@ -83,10 +106,8 @@ export async function newCommand(
 
   ensureDirectory(projectDir);
 
-  // Generate project structure
   console.log(chalk.gray('\nGenerating project structure...\n'));
 
-  // Create directory structure
   const packagePath = packageToPath(packageName);
   const mainJavaPath = path.join(projectDir, 'src/main/java', packagePath);
   const mainResourcesPath = path.join(projectDir, 'src/main/resources');
@@ -98,340 +119,310 @@ export async function newCommand(
   ensureDirectory(testJavaPath);
   ensureDirectory(testResourcesPath);
 
-  // Generate files based on build tool
   if (answers.buildTool === 'Maven') {
     generatePomXml(projectDir, name, packageName, answers);
   } else {
     generateBuildGradle(projectDir, name, packageName, answers);
   }
 
-  // Generate application.yml
-  generateApplicationYml(mainResourcesPath, packageName, answers);
-
-  // Generate main Application class
+  generateApplicationYml(mainResourcesPath, name, packageName, answers);
   generateApplicationClass(mainJavaPath, packageName, name);
-
-  // Generate example controller
-  generateExampleController(mainJavaPath, packageName);
+  generateHealthController(mainJavaPath, packageName, style);
 
   console.log(chalk.green('\n✓ Project created successfully!'));
   console.log();
   console.log(chalk.gray('Next steps:'));
   console.log(chalk.gray(`  cd ${name}`));
   if (answers.buildTool === 'Maven') {
-    console.log(chalk.gray('  ./mvnw spring-boot:run'));
+    console.log(chalk.gray('  mvn spring-boot:run'));
   } else {
-    console.log(chalk.gray('  ./gradlew bootRun'));
+    console.log(chalk.gray('  gradle bootRun'));
   }
 }
 
-interface ProjectAnswers {
-  buildTool: string;
-  javaVersion: string;
-  springBootVersion: string;
-  dependencies: string[];
-  name?: string;
+function normalizeStyle(style?: GeneratorStyle): GeneratorStyle {
+  return style === 'layered' ? 'layered' : 'ddd-modulith';
 }
 
 function generatePomXml(
   projectDir: string,
   name: string,
   packageName: string,
-  answers: ProjectAnswers
+  answers: ProjectAnswers,
 ): void {
   const { javaVersion, springBootVersion, dependencies } = answers;
-  
   const dependencyXml = buildMavenDependencies(dependencies);
-  
+
   const content = `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>${springBootVersion}</version>
-        <relativePath/>
-    </parent>
-    
-    <groupId>${packageName}</groupId>
-    <artifactId>${name}</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>${name}</name>
-    <description>${name} project for Spring Boot</description>
-    
-    <properties>
-        <java.version>${javaVersion}</java.version>
-    </properties>
-    
-    <dependencies>
-        ${dependencyXml}
-    </dependencies>
-    
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-</project>`;
+  <modelVersion>4.0.0</modelVersion>
 
-  const filePath = path.join(projectDir, 'pom.xml');
-  writeFile(filePath, content);
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>${springBootVersion}</version>
+    <relativePath />
+  </parent>
+
+  <groupId>${packageName}</groupId>
+  <artifactId>${name}</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>${name}</name>
+  <description>${name} generated by SpringBoot Generator CLI</description>
+
+  <properties>
+    <java.version>${javaVersion}</java.version>
+  </properties>
+
+  <dependencies>
+${dependencyXml}
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+`;
+
+  writeFile(path.join(projectDir, 'pom.xml'), content);
   logFileCreated('pom.xml');
 }
 
 function buildMavenDependencies(dependencies: string[]): string {
   const deps: string[] = [];
-  
+
   if (dependencies.includes('web')) {
-    deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>`);
+    deps.push(mavenDependency('org.springframework.boot', 'spring-boot-starter-web'));
   }
   if (dependencies.includes('jpa')) {
-    deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>`);
+    deps.push(mavenDependency('org.springframework.boot', 'spring-boot-starter-data-jpa'));
   }
   if (dependencies.includes('mongodb')) {
-    deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>`);
+    deps.push(mavenDependency('org.springframework.boot', 'spring-boot-starter-data-mongodb'));
   }
   if (dependencies.includes('redis')) {
-    deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>`);
+    deps.push(mavenDependency('org.springframework.boot', 'spring-boot-starter-data-redis'));
   }
   if (dependencies.includes('security')) {
-    deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>`);
+    deps.push(mavenDependency('org.springframework.boot', 'spring-boot-starter-security'));
   }
   if (dependencies.includes('validation')) {
-    deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>`);
+    deps.push(mavenDependency('org.springframework.boot', 'spring-boot-starter-validation'));
   }
   if (dependencies.includes('lombok')) {
-    deps.push(`<dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>`);
+    deps.push(`    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>`);
   }
   if (dependencies.includes('mapstruct')) {
-    deps.push(`<dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>1.5.5.Final</version>
-        </dependency>`);
+    deps.push(`    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>1.6.3</version>
+    </dependency>`);
   }
   if (dependencies.includes('mysql')) {
-    deps.push(`<dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
-        </dependency>`);
+    deps.push(runtimeMavenDependency('com.mysql', 'mysql-connector-j'));
   }
   if (dependencies.includes('postgresql')) {
-    deps.push(`<dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>`);
+    deps.push(runtimeMavenDependency('org.postgresql', 'postgresql'));
   }
   if (dependencies.includes('h2')) {
-    deps.push(`<dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>`);
+    deps.push(runtimeMavenDependency('com.h2database', 'h2'));
   }
   if (dependencies.includes('openapi')) {
-    deps.push(`<dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.3.0</version>
-        </dependency>`);
+    deps.push(`    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>${DEFAULT_SPRINGDOC_VERSION}</version>
+    </dependency>`);
   }
-  
-  // Test dependency
-  deps.push(`<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>`);
-  
-  return deps.join('\n        ');
+
+  deps.push(`    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>`);
+
+  return deps.join('\n');
+}
+
+function mavenDependency(groupId: string, artifactId: string): string {
+  return `    <dependency>
+      <groupId>${groupId}</groupId>
+      <artifactId>${artifactId}</artifactId>
+    </dependency>`;
+}
+
+function runtimeMavenDependency(groupId: string, artifactId: string): string {
+  return `    <dependency>
+      <groupId>${groupId}</groupId>
+      <artifactId>${artifactId}</artifactId>
+      <scope>runtime</scope>
+    </dependency>`;
 }
 
 function generateBuildGradle(
   projectDir: string,
   _name: string,
   packageName: string,
-  answers: ProjectAnswers
+  answers: ProjectAnswers,
 ): void {
   const { javaVersion, springBootVersion, dependencies } = answers;
-  
-  const depImpl = buildGradleDependencies(dependencies);
-  
+  const dependencyBlock = buildGradleDependencies(dependencies);
+
   const content = `plugins {
-    id 'java'
-    id 'org.springframework.boot' version '${springBootVersion}'
-    id 'io.spring.dependency-management' version '1.1.4'
+  id 'java'
+  id 'org.springframework.boot' version '${springBootVersion}'
 }
 
 group = '${packageName}'
 version = '0.0.1-SNAPSHOT'
 
 java {
-    sourceCompatibility = '${javaVersion}'
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(${javaVersion})
+  }
 }
 
 configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
+  compileOnly {
+    extendsFrom annotationProcessor
+  }
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 dependencies {
-    ${depImpl}
+${dependencyBlock}
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
-}`;
+  useJUnitPlatform()
+}
+`;
 
-  const filePath = path.join(projectDir, 'build.gradle');
-  writeFile(filePath, content);
+  writeFile(path.join(projectDir, 'build.gradle'), content);
   logFileCreated('build.gradle');
 }
 
 function buildGradleDependencies(dependencies: string[]): string {
   const deps: string[] = [];
-  
+
   if (dependencies.includes('web')) {
-    deps.push("implementation 'org.springframework.boot:spring-boot-starter-web'");
+    deps.push(`  implementation 'org.springframework.boot:spring-boot-starter-web'`);
   }
   if (dependencies.includes('jpa')) {
-    deps.push("implementation 'org.springframework.boot:spring-boot-starter-data-jpa'");
+    deps.push(`  implementation 'org.springframework.boot:spring-boot-starter-data-jpa'`);
   }
   if (dependencies.includes('mongodb')) {
-    deps.push("implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'");
+    deps.push(`  implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'`);
   }
   if (dependencies.includes('redis')) {
-    deps.push("implementation 'org.springframework.boot:spring-boot-starter-data-redis'");
+    deps.push(`  implementation 'org.springframework.boot:spring-boot-starter-data-redis'`);
   }
   if (dependencies.includes('security')) {
-    deps.push("implementation 'org.springframework.boot:spring-boot-starter-security'");
+    deps.push(`  implementation 'org.springframework.boot:spring-boot-starter-security'`);
   }
   if (dependencies.includes('validation')) {
-    deps.push("implementation 'org.springframework.boot:spring-boot-starter-validation'");
+    deps.push(`  implementation 'org.springframework.boot:spring-boot-starter-validation'`);
   }
   if (dependencies.includes('lombok')) {
-    deps.push("compileOnly 'org.projectlombok:lombok'");
-    deps.push("annotationProcessor 'org.projectlombok:lombok'");
+    deps.push(`  compileOnly 'org.projectlombok:lombok'`);
+    deps.push(`  annotationProcessor 'org.projectlombok:lombok'`);
   }
   if (dependencies.includes('mapstruct')) {
-    deps.push("implementation 'org.mapstruct:mapstruct:1.5.5.Final'");
-    deps.push("annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'");
+    deps.push(`  implementation 'org.mapstruct:mapstruct:1.6.3'`);
+    deps.push(`  annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'`);
   }
   if (dependencies.includes('mysql')) {
-    deps.push("runtimeOnly 'com.mysql:mysql-connector-j'");
+    deps.push(`  runtimeOnly 'com.mysql:mysql-connector-j'`);
   }
   if (dependencies.includes('postgresql')) {
-    deps.push("runtimeOnly 'org.postgresql:postgresql'");
+    deps.push(`  runtimeOnly 'org.postgresql:postgresql'`);
   }
   if (dependencies.includes('h2')) {
-    deps.push("runtimeOnly 'com.h2database:h2'");
+    deps.push(`  runtimeOnly 'com.h2database:h2'`);
   }
   if (dependencies.includes('openapi')) {
-    deps.push("implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'");
+    deps.push(
+      `  implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:${DEFAULT_SPRINGDOC_VERSION}'`,
+    );
   }
-  
-  deps.push("testImplementation 'org.springframework.boot:spring-boot-starter-test'");
-  
-  return deps.join('\n    ');
+
+  deps.push(`  testImplementation 'org.springframework.boot:spring-boot-starter-test'`);
+
+  return deps.join('\n');
 }
 
 function generateApplicationYml(
   resourcesPath: string,
+  projectName: string,
   packageName: string,
-  answers: ProjectAnswers
+  answers: ProjectAnswers,
 ): void {
-  const { name, dependencies } = answers;
-  
-  let dbConfig = '';
-  if (dependencies.includes('h2')) {
-    dbConfig = `
+  const { dependencies } = answers;
+
+  const h2Config = dependencies.includes('h2')
+    ? `
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:demo
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
+    password:
   h2:
     console:
-      enabled: true`;
-  }
-  
-  const content = `spring:
-  application:
-    name: ${name}${dependencies.includes('jpa') ? `
+      enabled: true`
+    : '';
+
+  const jpaConfig = dependencies.includes('jpa')
+    ? `
   jpa:
     hibernate:
       ddl-auto: update
+    open-in-view: false
     show-sql: true
     properties:
       hibernate:
-        format_sql: true${dbConfig}` : ''}
+        format_sql: true${h2Config}`
+    : '';
+
+  const content = `spring:
+  application:
+    name: ${projectName}${jpaConfig}
 
 server:
   port: 8080
 
-# Logging configuration
 logging:
   level:
     ${packageName}: DEBUG
     org.springframework.web: INFO
 `;
 
-  const filePath = path.join(resourcesPath, 'application.yml');
-  writeFile(filePath, content);
+  writeFile(path.join(resourcesPath, 'application.yml'), content);
   logFileCreated('src/main/resources/application.yml');
 }
 
 function generateApplicationClass(
   javaPath: string,
   packageName: string,
-  name: string
+  name: string,
 ): void {
-  const className = toPascalCase(name.replace(/-/g, ' ')) + 'Application';
-  
+  const className = `${toPascalCase(name)}Application`;
+
   const content = `package ${packageName};
 
 import org.springframework.boot.SpringApplication;
@@ -440,22 +431,27 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class ${className} {
 
-    public static void main(String[] args) {
-        SpringApplication.run(${className}.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(${className}.class, args);
+  }
 }
 `;
 
-  const filePath = path.join(javaPath, `${className}.java`);
-  writeFile(filePath, content);
-  logFileCreated(`src/main/java/${className}.java`);
+  writeFile(path.join(javaPath, `${className}.java`), content);
+  logFileCreated(`src/main/java/${packageToPath(packageName)}/${className}.java`);
 }
 
-function generateExampleController(javaPath: string, packageName: string): void {
-  const controllerDir = path.join(javaPath, 'controller');
-  ensureDirectory(controllerDir);
-  
-  const content = `package ${packageName}.controller;
+function generateHealthController(
+  javaPath: string,
+  packageName: string,
+  style: GeneratorStyle,
+): void {
+  const packageSuffix = style === 'ddd-modulith' ? 'common.api' : 'controller';
+  const outputDir = path.join(javaPath, ...packageSuffix.split('.'));
+
+  ensureDirectory(outputDir);
+
+  const content = `package ${packageName}.${packageSuffix};
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -465,27 +461,21 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/health")
 public class HealthController {
 
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, String>> health() {
-        return ResponseEntity.ok(Map.of(
-            "status", "UP",
-            "message", "Application is running"
-        ));
-    }
+  @GetMapping
+  public ResponseEntity<Map<String, String>> health() {
+    return ResponseEntity.ok(Map.of(
+      "status", "UP",
+      "message", "Application is running"
+    ));
+  }
 }
 `;
 
-  const filePath = path.join(controllerDir, 'HealthController.java');
-  writeFile(filePath, content);
-  logFileCreated('src/main/java/controller/HealthController.java');
-}
-
-function toPascalCase(str: string): string {
-  return str
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join('');
+  writeFile(path.join(outputDir, 'HealthController.java'), content);
+  logFileCreated(
+    `src/main/java/${packageToPath(packageName)}/${packageSuffix.replace(/\./g, '/')}/HealthController.java`,
+  );
 }

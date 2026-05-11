@@ -23,18 +23,20 @@ program
 // Register commands
 program
   .command('new <name>')
-  .description('Create a new Spring Boot project')
+  .description('Create a new DDD-friendly Spring Boot project')
   .option('-p, --package <package>', 'base package name', 'com.example')
   .option('-d, --directory <directory>', 'target directory')
+  .option('-s, --style <style>', 'project layout style (ddd-modulith|layered)', 'ddd-modulith')
   .action(newCommand);
 
 program
   .command('generate <type> <name>')
   .alias('g')
-  .description('Generate code artifacts (controller, service, repository, entity, dto, module)')
+  .description('Generate code artifacts (module recommended; controller/service/repository/entity/dto are legacy layered generators)')
   .option('-p, --package <package>', 'package name suffix')
   .option('-d, --directory <directory>', 'target directory', 'src/main/java')
   .option('-m, --module <module>', 'module name')
+  .option('-s, --style <style>', 'module layout style (ddd-modulith|layered)', 'ddd-modulith')
   .option('--crud', 'generate CRUD operations', false)
   .option('--rest', 'generate REST endpoints', true)
   .option('--jpa', 'include JPA annotations', true)

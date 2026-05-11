@@ -25,12 +25,26 @@ export async function generateService(options: GeneratorOptions): Promise<void> 
     className: serviceName,
     classNameLower: toCamelCase(serviceName),
     classNameCamel: toCamelCase(className),
+    style: 'layered',
     packageName: module 
       ? `${packageName}.${module}.service`
       : `${packageName}.service`,
     entityName: className,
     entityNameLower: toCamelCase(className),
     moduleName: module,
+    modulePath: module,
+    dtoPackage: module
+      ? `${packageName}.${module}.dto`
+      : `${packageName}.dto`,
+    entityPackage: module
+      ? `${packageName}.${module}.entity`
+      : `${packageName}.entity`,
+    repositoryPackage: module
+      ? `${packageName}.${module}.repository`
+      : `${packageName}.repository`,
+    requestClassName: `${className}Request`,
+    responseClassName: `${className}Response`,
+    repositoryInterfaceName: `${className}Repository`,
     hasLombok: lombok ?? true,
     hasJpa: jpa ?? true,
     hasCrud: crud ?? false,
@@ -56,6 +70,9 @@ export async function generateService(options: GeneratorOptions): Promise<void> 
     packageName: module 
       ? `${packageName}.${module}.service.impl`
       : `${packageName}.service.impl`,
+    servicePackage: module
+      ? `${packageName}.${module}.service`
+      : `${packageName}.service`,
   };
   
   const implTargetDir = path.join(targetDir, 'impl');

@@ -24,12 +24,22 @@ export async function generateController(options: GeneratorOptions): Promise<voi
     className: controllerName,
     classNameLower: toCamelCase(controllerName),
     classNameCamel: toCamelCase(className),
+    style: 'layered',
     packageName: module 
       ? `${packageName}.${module}.controller`
       : `${packageName}.controller`,
     entityName: className,
     entityNameLower: toCamelCase(className),
     moduleName: module,
+    modulePath: module,
+    dtoPackage: module
+      ? `${packageName}.${module}.dto`
+      : `${packageName}.dto`,
+    servicePackage: module
+      ? `${packageName}.${module}.service`
+      : `${packageName}.service`,
+    requestClassName: `${className}Request`,
+    responseClassName: `${className}Response`,
     hasLombok: lombok ?? true,
     hasJpa: jpa ?? true,
     hasCrud: crud ?? false,

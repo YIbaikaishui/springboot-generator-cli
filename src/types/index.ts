@@ -1,8 +1,11 @@
+export type GeneratorStyle = 'ddd-modulith' | 'layered';
+
 export interface GeneratorOptions {
   name: string;
   packageName: string;
   module?: string;
   directory: string;
+  style?: GeneratorStyle;
   crud?: boolean;
   rest?: boolean;
   jpa?: boolean;
@@ -13,6 +16,7 @@ export interface GenerateCommandOptions {
   package?: string;
   directory?: string;
   module?: string;
+  style?: GeneratorStyle;
   crud?: boolean;
   rest?: boolean;
   jpa?: boolean;
@@ -33,19 +37,41 @@ export type GeneratorType =
   | 'repository' 
   | 'entity' 
   | 'dto' 
-  | 'module'
-  | 'mapper'
-  | 'config'
-  | 'exception';
+  | 'module';
 
 export interface TemplateData {
   className: string;
   classNameLower: string;
   classNameCamel: string;
   packageName: string;
+  style?: GeneratorStyle;
   entityName?: string;
   entityNameLower?: string;
   moduleName?: string;
+  modulePath?: string;
+  artifactKind?: string;
+  basePackage?: string;
+  apiPackage?: string;
+  applicationPackage?: string;
+  domainPackage?: string;
+  infrastructurePackage?: string;
+  persistencePackage?: string;
+  entityPackage?: string;
+  dtoPackage?: string;
+  servicePackage?: string;
+  repositoryPackage?: string;
+  createRequestClassName?: string;
+  updateRequestClassName?: string;
+  requestClassName?: string;
+  responseClassName?: string;
+  controllerName?: string;
+  applicationServiceName?: string;
+  repositoryInterfaceName?: string;
+  repositoryImplName?: string;
+  jpaEntityName?: string;
+  jpaRepositoryName?: string;
+  routeName?: string;
+  tableName?: string;
   hasLombok: boolean;
   hasJpa: boolean;
   hasCrud: boolean;

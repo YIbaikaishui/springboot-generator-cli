@@ -1,0 +1,70 @@
+package <%= packageName %>;
+
+import <%= apiPackage %>.<%= createRequestClassName %>;
+import <%= apiPackage %>.<%= updateRequestClassName %>;
+import <%= apiPackage %>.<%= responseClassName %>;
+import <%= domainPackage %>.<%= entityName %>;
+import <%= domainPackage %>.<%= repositoryInterfaceName %>;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional(readOnly = true)
+public class <%= className %> {
+
+    private final <%= repositoryInterfaceName %> <%= entityNameLower %>Repository;
+
+    public <%= className %>(<%= repositoryInterfaceName %> <%= entityNameLower %>Repository) {
+        this.<%= entityNameLower %>Repository = <%= entityNameLower %>Repository;
+    }
+
+    @Transactional
+    public <%= responseClassName %> create(<%= createRequestClassName %> request) {
+        <%= entityName %> <%= entityNameLower %> = <%= entityName %>.create(
+                request.getName(),
+                request.getEmail()
+        );
+
+        return toResponse(<%= entityNameLower %>Repository.save(<%= entityNameLower %>));
+    }
+
+    public <%= responseClassName %> getById(Long id) {
+        return <%= entityNameLower %>Repository.findById(id)
+                .map(this::toResponse)
+                .orElseThrow(() -> new NoSuchElementException("<%= entityName %> not found with id: " + id));
+    }
+
+    public List<<%= responseClassName %>> getAll() {
+        return <%= entityNameLower %>Repository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public <%= responseClassName %> update(Long id, <%= updateRequestClassName %> request) {
+        <%= entityName %> <%= entityNameLower %> = <%= entityNameLower %>Repository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("<%= entityName %> not found with id: " + id));
+
+        <%= entityNameLower %>.updateProfile(request.getName(), request.getEmail());
+        return toResponse(<%= entityNameLower %>Repository.save(<%= entityNameLower %>));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        <%= entityNameLower %>Repository.deleteById(id);
+    }
+
+    private <%= responseClassName %> toResponse(<%= entityName %> <%= entityNameLower %>) {
+        <%= responseClassName %> response = new <%= responseClassName %>();
+        response.setId(<%= entityNameLower %>.getId());
+        response.setName(<%= entityNameLower %>.getName());
+        response.setEmail(<%= entityNameLower %>.getEmail());
+        response.setCreatedAt(<%= entityNameLower %>.getCreatedAt());
+        response.setUpdatedAt(<%= entityNameLower %>.getUpdatedAt());
+        return response;
+    }
+}

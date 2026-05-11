@@ -1,0 +1,15 @@
+package <%= packageName %>;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface <%= className %> {
+
+    Optional<<%= entityName %>> findById(Long id);
+
+    List<<%= entityName %>> findAll();
+
+    <%= entityName %> save(<%= entityName %> <%= entityNameLower %>);
+
+    void deleteById(Long id);
+}

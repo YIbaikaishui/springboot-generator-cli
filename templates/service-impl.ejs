@@ -1,11 +1,17 @@
 package <%= packageName %>;
 
+import <%= dtoPackage %>.<%= requestClassName %>;
+import <%= dtoPackage %>.<%= responseClassName %>;
+import <%= entityPackage %>.<%= entityName %>;
+import <%= repositoryPackage %>.<%= entityName %>Repository;
+import <%= servicePackage %>.<%= entityName %>Service;
 <% if (hasJpa) { %>
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;<% } %>
 <% if (hasLombok) { %>
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;<% } %>
+<% } %>
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -27,7 +33,7 @@ public class <%= className %> implements <%= entityName %>Service {
 
     @Override
     @Transactional
-    public <%= entityName %>Response create(<%= entityName %>Request request) {
+    public <%= responseClassName %> create(<%= requestClassName %> request) {
         <%= entityName %> entity = new <%= entityName %>();
         // TODO: Map request to entity
         <%= entityName %> saved = <%= entityNameLower %>Repository.save(entity);
@@ -35,14 +41,14 @@ public class <%= className %> implements <%= entityName %>Service {
     }
 
     @Override
-    public <%= entityName %>Response getById(Long id) {
+    public <%= responseClassName %> getById(Long id) {
         <%= entityName %> entity = <%= entityNameLower %>Repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("<%= entityName %> not found with id: " + id));
         return toResponse(entity);
     }
 
     @Override
-    public List<<%= entityName %>Response> getAll() {
+    public List<<%= responseClassName %>> getAll() {
         return <%= entityNameLower %>Repository.findAll().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -50,7 +56,7 @@ public class <%= className %> implements <%= entityName %>Service {
 
     <% if (hasJpa) { %>
     @Override
-    public Page<<%= entityName %>Response> getPage(Pageable pageable) {
+    public Page<<%= responseClassName %>> getPage(Pageable pageable) {
         return <%= entityNameLower %>Repository.findAll(pageable)
                 .map(this::toResponse);
     }
@@ -58,7 +64,7 @@ public class <%= className %> implements <%= entityName %>Service {
 
     @Override
     @Transactional
-    public <%= entityName %>Response update(Long id, <%= entityName %>Request request) {
+    public <%= responseClassName %> update(Long id, <%= requestClassName %> request) {
         <%= entityName %> entity = <%= entityNameLower %>Repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("<%= entityName %> not found with id: " + id));
         // TODO: Update entity from request
@@ -72,8 +78,8 @@ public class <%= className %> implements <%= entityName %>Service {
         <%= entityNameLower %>Repository.deleteById(id);
     }
 
-    private <%= entityName %>Response toResponse(<%= entityName %> entity) {
-        <%= entityName %>Response response = new <%= entityName %>Response();
+    private <%= responseClassName %> toResponse(<%= entityName %> entity) {
+        <%= responseClassName %> response = new <%= responseClassName %>();
         // TODO: Map entity to response
         return response;
     }

@@ -26,12 +26,16 @@ export async function generateRepository(options: GeneratorOptions): Promise<voi
     className: repositoryName,
     classNameLower: toCamelCase(repositoryName),
     classNameCamel: toCamelCase(className),
+    style: 'layered',
     packageName: module 
       ? `${packageName}.${module}.repository`
       : `${packageName}.repository`,
     entityName: className,
     entityNameLower: toCamelCase(className),
     moduleName: module,
+    entityPackage: module
+      ? `${packageName}.${module}.entity`
+      : `${packageName}.entity`,
     hasLombok: false,
     hasJpa: jpa ?? true,
     hasCrud: true,

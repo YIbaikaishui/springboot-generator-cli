@@ -1,0 +1,95 @@
+package <%= packageName %>;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+public class <%= className %> {
+
+    private Long id;
+    private String name;
+    private String email;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    public <%= className %>() {
+    }
+
+    public <%= className %>(
+            Long id,
+            String name,
+            String email,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static <%= className %> create(String name, String email) {
+        LocalDateTime now = LocalDateTime.now();
+        return new <%= className %>(
+                null,
+                requireValue(name, "name"),
+                requireValue(email, "email"),
+                now,
+                now
+        );
+    }
+
+    public void updateProfile(String name, String email) {
+        this.name = requireValue(name, "name");
+        this.email = requireValue(email, "email");
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = requireValue(name, "name");
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = requireValue(email, "email");
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    private static String requireValue(String value, String fieldName) {
+        String normalized = Objects.requireNonNull(value, fieldName + " must not be null").trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+        return normalized;
+    }
+}

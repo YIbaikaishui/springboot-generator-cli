@@ -1,0 +1,67 @@
+package <%= packageName %>;
+
+import <%= domainPackage %>.<%= entityName %>;
+import <%= domainPackage %>.<%= repositoryInterfaceName %>;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Repository
+public class <%= className %> implements <%= repositoryInterfaceName %> {
+
+    private final <%= jpaRepositoryName %> <%= entityNameLower %>JpaRepository;
+
+    public <%= className %>(<%= jpaRepositoryName %> <%= entityNameLower %>JpaRepository) {
+        this.<%= entityNameLower %>JpaRepository = <%= entityNameLower %>JpaRepository;
+    }
+
+    @Override
+    public Optional<<%= entityName %>> findById(Long id) {
+        return <%= entityNameLower %>JpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<<%= entityName %>> findAll() {
+        return <%= entityNameLower %>JpaRepository.findAll().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public <%= entityName %> save(<%= entityName %> <%= entityNameLower %>) {
+        <%= jpaEntityName %> saved = <%= entityNameLower %>JpaRepository.save(toJpaEntity(<%= entityNameLower %>));
+        return toDomain(saved);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        <%= entityNameLower %>JpaRepository.deleteById(id);
+    }
+
+    private <%= entityName %> toDomain(<%= jpaEntityName %> entity) {
+        return new <%= entityName %>(
+                entity.getId(),
+                entity.getName(),
+                entity.getEmail(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
+    }
+
+    private <%= jpaEntityName %> toJpaEntity(<%= entityName %> <%= entityNameLower %>) {
+        <%= jpaEntityName %> entity = new <%= jpaEntityName %>();
+        entity.setId(<%= entityNameLower %>.getId());
+        entity.setName(<%= entityNameLower %>.getName());
+        entity.setEmail(<%= entityNameLower %>.getEmail());
+        entity.setCreatedAt(defaultTimestamp(<%= entityNameLower %>.getCreatedAt()));
+        entity.setUpdatedAt(defaultTimestamp(<%= entityNameLower %>.getUpdatedAt()));
+        return entity;
+    }
+
+    private LocalDateTime defaultTimestamp(LocalDateTime value) {
+        return value == null ? LocalDateTime.now() : value;
+    }
+}

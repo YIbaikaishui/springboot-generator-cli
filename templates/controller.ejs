@@ -1,9 +1,14 @@
 package <%= packageName %>;
 
+import <%= servicePackage %>.<%= entityName %>Service;
+import <%= dtoPackage %>.<%= requestClassName %>;
+import <%= dtoPackage %>.<%= responseClassName %>;
+
 <% if (hasRest) { %>
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;<% } %>
+import jakarta.validation.Valid;
 <% if (hasLombok) { %>
 import lombok.RequiredArgsConstructor;<% } %>
 <% if (hasJpa) { %>
@@ -15,7 +20,7 @@ import java.util.List;
 <% if (hasLombok) { %>
 @RequiredArgsConstructor<% } %>
 @RestController
-@RequestMapping("/api/<%= entityNameLower %>")
+@RequestMapping("/api/<%= entityNameLower %>s")
 public class <%= className %> {
 
     <% if (!hasLombok) { %>
@@ -29,32 +34,32 @@ public class <%= className %> {
     <% } %>
 
     @PostMapping
-    public ResponseEntity<<%= entityName %>Response> create(@RequestBody <%= entityName %>Request request) {
+    public ResponseEntity<<%= responseClassName %>> create(@Valid @RequestBody <%= requestClassName %> request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(<%= entityNameLower %>Service.create(request));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<<%= entityName %>Response> getById(@PathVariable Long id) {
+    public ResponseEntity<<%= responseClassName %>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(<%= entityNameLower %>Service.getById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<<%= entityName %>Response>> getAll() {
+    public ResponseEntity<List<<%= responseClassName %>>> getAll() {
         return ResponseEntity.ok(<%= entityNameLower %>Service.getAll());
     }
 
     <% if (hasJpa) { %>
     @GetMapping("/page")
-    public ResponseEntity<Page<<%= entityName %>Response>> getPage(Pageable pageable) {
+    public ResponseEntity<Page<<%= responseClassName %>>> getPage(Pageable pageable) {
         return ResponseEntity.ok(<%= entityNameLower %>Service.getPage(pageable));
     }
     <% } %>
 
     @PutMapping("/{id}")
-    public ResponseEntity<<%= entityName %>Response> update(
+    public ResponseEntity<<%= responseClassName %>> update(
             @PathVariable Long id,
-            @RequestBody <%= entityName %>Request request) {
+            @Valid @RequestBody <%= requestClassName %> request) {
         return ResponseEntity.ok(<%= entityNameLower %>Service.update(id, request));
     }
 

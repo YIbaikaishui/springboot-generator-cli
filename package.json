@@ -1,14 +1,14 @@
 {
-  "name": "springboot-cli",
+  "name": "springboot-generator-cli",
   "version": "1.0.0",
-  "description": "A CLI tool for generating Spring Boot modular code, similar to NestJS CLI",
+  "description": "A DDD-friendly Spring Boot generator CLI with Modulith-ready module scaffolding",
   "license": "MIT",
   "author": "",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "sg": "./dist/cli.js"
+    "sg": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -17,6 +17,7 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest",
+    "smoke:maven": "node scripts/smoke-generate.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -24,7 +25,9 @@
     "cli",
     "generator",
     "scaffold",
-    "java"
+    "java",
+    "ddd",
+    "modulith"
   ],
   "engines": {
     "node": ">=18.0.0"

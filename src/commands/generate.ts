@@ -1,6 +1,10 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import type { GenerateCommandOptions, GeneratorType } from '../types/index.js';
+import type {
+  GenerateCommandOptions,
+  GeneratorStyle,
+  GeneratorType,
+} from '../types/index.js';
 import { generateController } from '../generators/controller.js';
 import { generateService } from '../generators/service.js';
 import { generateRepository } from '../generators/repository.js';
@@ -12,15 +16,22 @@ import path from 'path';
 
 const VALID_TYPES: GeneratorType[] = [
   'controller',
-  'service', 
+  'service',
   'repository',
   'entity',
   'dto',
   'module',
-  'mapper',
-  'config',
-  'exception',
 ];
+
+const LEGACY_LAYERED_TYPES: GeneratorType[] = [
+  'controller',
+  'service',
+  'repository',
+  'entity',
+  'dto',
+];
+
+const VALID_STYLES: GeneratorStyle[] = ['ddd-modulith', 'layered'];
 
 export async function generateCommand(
   type: string,
@@ -60,6 +71,13 @@ export async function generateCommand(
     }
   }
 
+  const style = (options.style ?? 'ddd-modulith') as GeneratorStyle;
+  if (!VALID_STYLES.includes(style)) {
+    console.log(chalk.red(`Invalid style: ${style}`));
+    console.log(chalk.gray(`Valid styles: ${VALID_STYLES.join(', ')}`));
+    process.exit(1);
+  }
+
   // Get package name
   let packageName = options.package || 'com.example';
   if (!options.package) {
@@ -80,6 +98,7 @@ export async function generateCommand(
     packageName,
     module: options.module,
     directory: targetDir,
+    style,
     crud: options.crud,
     rest: options.rest ?? true,
     jpa: options.jpa ?? true,
@@ -90,7 +109,17 @@ export async function generateCommand(
   console.log(chalk.cyan(`Generating ${type}: ${name}`));
   console.log(chalk.gray(`Package: ${packageName}`));
   console.log(chalk.gray(`Directory: ${targetDir}`));
+  console.log(chalk.gray(`Style: ${style}`));
   console.log();
+
+  if (LEGACY_LAYERED_TYPES.includes(type as GeneratorType) && style !== 'layered') {
+    console.log(
+      chalk.yellow(
+        `Note: '${type}' is a legacy layered generator. Use 'sg g module ${name}' for the default DDD/Modulith-ready layout.`,
+      ),
+    );
+    console.log();
+  }
 
   // Execute generator
   switch (type) {

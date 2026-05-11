@@ -25,6 +25,7 @@ export async function generateDto(options: GeneratorOptions): Promise<void> {
     className: requestDtoName,
     classNameLower: toCamelCase(requestDtoName),
     classNameCamel: toCamelCase(className),
+    style: 'layered',
     packageName: module 
       ? `${packageName}.${module}.dto`
       : `${packageName}.dto`,
