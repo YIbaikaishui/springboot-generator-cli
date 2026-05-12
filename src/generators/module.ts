@@ -8,12 +8,12 @@ import {
   toSnakeCase,
   packageToPath,
 } from '../utils/naming.js';
+import { ensureDirectory, exists, logFileCreated, writeFile } from '../utils/file.js';
 import {
-  ensureDirectory,
-  exists,
-  logFileCreated,
-  writeFile,
-} from '../utils/file.js';
+  buildDefaultBusinessFields,
+  buildModuleFields,
+  collectJavaImports,
+} from '../utils/fields.js';
 import { renderTemplate } from '../templates/engine.js';
 import { generateController } from './controller.js';
 import { generateDto } from './dto.js';
@@ -69,31 +69,33 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
   const moduleRootDir = path.join(
     process.cwd(),
     options.directory,
-    packageToPath(data.basePackage ?? ''),
+    packageToPath(data.basePackage ?? '')
   );
 
   console.log(chalk.cyan(`\nGenerating DDD/Modulith-ready module: ${entityName}`));
   console.log(chalk.gray('This will generate:'));
-  console.log(chalk.gray(`  - API: ${data.controllerName}, ${data.createRequestClassName}, ${data.updateRequestClassName}, ${data.responseClassName}`));
+  console.log(
+    chalk.gray(
+      `  - API: ${data.controllerName}, ${data.createRequestClassName}, ${data.updateRequestClassName}, ${data.responseClassName}`
+    )
+  );
   console.log(chalk.gray(`  - Application: ${data.applicationServiceName}`));
   console.log(chalk.gray(`  - Domain: ${entityName}, ${data.repositoryInterfaceName}`));
-  console.log(chalk.gray(`  - Infrastructure: ${data.jpaEntityName}, ${data.jpaRepositoryName}, ${data.repositoryImplName}`));
+  console.log(
+    chalk.gray(
+      `  - Infrastructure: ${data.jpaEntityName}, ${data.jpaRepositoryName}, ${data.repositoryImplName}`
+    )
+  );
   console.log();
 
-  await generateDddFile(
-    moduleRootDir,
-    'api',
-    `${data.controllerName}.java`,
-    'ddd/api-controller',
-    {
-      ...data,
-      className: data.controllerName ?? '',
-      classNameLower: toCamelCase(data.controllerName ?? ''),
-      classNameCamel: toCamelCase(entityName),
-      packageName: data.apiPackage ?? '',
-      artifactKind: 'api-controller',
-    },
-  );
+  await generateDddFile(moduleRootDir, 'api', `${data.controllerName}.java`, 'ddd/api-controller', {
+    ...data,
+    className: data.controllerName ?? '',
+    classNameLower: toCamelCase(data.controllerName ?? ''),
+    classNameCamel: toCamelCase(entityName),
+    packageName: data.apiPackage ?? '',
+    artifactKind: 'api-controller',
+  });
   await generateDddFile(
     moduleRootDir,
     'api',
@@ -106,7 +108,16 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.apiPackage ?? '',
       artifactKind: 'api-create-request',
-    },
+      imports: [
+        ...collectJavaImports(data.businessFields ?? []),
+        ...((data.businessFields ?? []).some((field) => field.isEmail)
+          ? ['jakarta.validation.constraints.Email']
+          : []),
+        ...((data.businessFields ?? []).some((field) => field.isString)
+          ? ['jakarta.validation.constraints.NotBlank']
+          : []),
+      ],
+    }
   );
   await generateDddFile(
     moduleRootDir,
@@ -120,7 +131,16 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.apiPackage ?? '',
       artifactKind: 'api-update-request',
-    },
+      imports: [
+        ...collectJavaImports(data.businessFields ?? []),
+        ...((data.businessFields ?? []).some((field) => field.isEmail)
+          ? ['jakarta.validation.constraints.Email']
+          : []),
+        ...((data.businessFields ?? []).some((field) => field.isString)
+          ? ['jakarta.validation.constraints.NotBlank']
+          : []),
+      ],
+    }
   );
   await generateDddFile(
     moduleRootDir,
@@ -134,7 +154,8 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.apiPackage ?? '',
       artifactKind: 'api-response',
-    },
+      imports: collectJavaImports(data.fields ?? []),
+    }
   );
   await generateDddFile(
     moduleRootDir,
@@ -148,22 +169,20 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.applicationPackage ?? '',
       artifactKind: 'application-service',
-    },
+    }
   );
-  await generateDddFile(
-    moduleRootDir,
-    'domain',
-    `${entityName}.java`,
-    'ddd/domain-entity',
-    {
-      ...data,
-      className: entityName,
-      classNameLower: toCamelCase(entityName),
-      classNameCamel: toCamelCase(entityName),
-      packageName: data.domainPackage ?? '',
-      artifactKind: 'domain-entity',
-    },
-  );
+  await generateDddFile(moduleRootDir, 'domain', `${entityName}.java`, 'ddd/domain-entity', {
+    ...data,
+    className: entityName,
+    classNameLower: toCamelCase(entityName),
+    classNameCamel: toCamelCase(entityName),
+    packageName: data.domainPackage ?? '',
+    artifactKind: 'domain-entity',
+    imports: [
+      ...collectJavaImports(data.fields ?? []),
+      ...((data.businessFields ?? []).some((field) => field.isString) ? ['java.util.Objects'] : []),
+    ],
+  });
   await generateDddFile(
     moduleRootDir,
     'domain',
@@ -176,7 +195,7 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.domainPackage ?? '',
       artifactKind: 'domain-repository',
-    },
+    }
   );
   await generateDddFile(
     moduleRootDir,
@@ -190,7 +209,8 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.persistencePackage ?? '',
       artifactKind: 'infrastructure-jpa-entity',
-    },
+      imports: collectJavaImports(data.fields ?? []),
+    }
   );
   await generateDddFile(
     moduleRootDir,
@@ -204,7 +224,7 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.persistencePackage ?? '',
       artifactKind: 'infrastructure-jpa-repository',
-    },
+    }
   );
   await generateDddFile(
     moduleRootDir,
@@ -218,20 +238,20 @@ async function generateDddModule(options: GeneratorOptions): Promise<void> {
       classNameCamel: toCamelCase(entityName),
       packageName: data.persistencePackage ?? '',
       artifactKind: 'infrastructure-repository-impl',
-    },
+      imports: collectJavaImports(data.fields ?? []),
+    }
   );
 
   console.log();
   console.log(chalk.green(`✓ DDD/Modulith-ready module ${entityName} generated successfully!`));
 }
 
-function buildDddTemplateData(
-  options: GeneratorOptions,
-  entityName: string,
-): TemplateData {
+function buildDddTemplateData(options: GeneratorOptions, entityName: string): TemplateData {
   const modulePath = resolveModulePath(options);
   const basePackage = `${options.packageName}.${modulePath}`;
   const entityNameLower = toCamelCase(entityName);
+  const businessFields = options.fields?.length ? options.fields : buildDefaultBusinessFields();
+  const fields = buildModuleFields(businessFields);
 
   return {
     className: entityName,
@@ -264,13 +284,8 @@ function buildDddTemplateData(
     hasJpa: options.jpa ?? true,
     hasCrud: true,
     hasRest: true,
-    fields: [
-      { name: 'id', type: 'Long', isId: true },
-      { name: 'name', type: 'String' },
-      { name: 'email', type: 'String' },
-      { name: 'createdAt', type: 'LocalDateTime' },
-      { name: 'updatedAt', type: 'LocalDateTime' },
-    ],
+    fields,
+    businessFields,
   };
 }
 
@@ -279,7 +294,7 @@ async function generateDddFile(
   relativeDir: string,
   fileName: string,
   templateName: string,
-  templateData: TemplateData,
+  templateData: TemplateData
 ): Promise<void> {
   const targetDir = path.join(moduleRootDir, relativeDir);
   const filePath = path.join(targetDir, fileName);

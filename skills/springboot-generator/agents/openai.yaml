@@ -1,0 +1,4 @@
+interface:
+  display_name: 'SpringBoot Generator'
+  short_description: 'Scaffold compile-safe Spring Boot projects and DDD modules'
+  default_prompt: 'Use $springboot-generator to scaffold a Spring Boot project or DDD-friendly module and verify the generated code compiles.'

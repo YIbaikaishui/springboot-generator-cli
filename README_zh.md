@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>面向 DDD 的 Spring Boot 脚手架工具，默认采用 Modulith 风格结构，同时保留旧式分层模式的兼容生成能力。</strong>
+  <strong>面向 AI 工作流、可编译验证的 Spring Boot 脚手架工具，默认采用 DDD 友好和 Modulith Ready 的结构，并提供可安装的 Codex Skill。</strong>
 </p>
 
 <p align="center">
@@ -24,6 +24,7 @@
   <a href="#为什么这样组织">为什么这样组织</a> ·
   <a href="#特性">特性</a> ·
   <a href="#快速开始">快速开始</a> ·
+  <a href="#通过-codex--skillssh-使用">Codex Skill</a> ·
   <a href="#生成结构">生成结构</a> ·
   <a href="#命令说明">命令说明</a> ·
   <a href="#开发">开发</a>
@@ -41,6 +42,7 @@ SpringBoot Generator CLI 是一个基于 TypeScript 的命令行工具，用来�
 - `sg g module` 默认生成 `api / application / domain / infrastructure` 模块结构
 - `--style layered` 保留旧式分层生成方式，方便兼容历史项目
 - 第一版采用 Modulith 风格的包组织，但不强制引入 Spring Modulith 依赖
+- CLI 是核心执行引擎，附带的 Skill 是给 Codex 等 agent 用的工作流封装层
 
 ## 为什么这样组织
 
@@ -55,10 +57,22 @@ SpringBoot Generator CLI 是一个基于 TypeScript 的命令行工具，用来�
 
 这个项目把“按业务模块组织代码”作为默认方式，让每个功能模块都更容易阅读、测试和扩展。
 
+## 为什么不是直接让 AI 生成
+
+AI 可以生成 Spring Boot 代码，但团队仍然需要稳定脚手架。
+
+- prompt 会漂，但目录结构不应该漂
+- 临时生成的输出经常在 import、构建文件、持久化 wiring 上不稳定
+- agent 需要可重复执行、可验证的命令，而不是每次重新发明结构
+
+这个项目的价值不是替代 AI，而是给 AI 和 agent 提供一个可复用的基础能力：确定性的、可编译验证的 Spring Boot 结构生成。
+
 ## 特性
 
 - DDD 友好的模块脚手架
 - Modulith 风格的包结构
+- 通过 `--fields` 自定义业务字段
+- 可安装到 Codex 等 agent 的 Skill
 - 旧式分层模式兼容生成
 - 使用 EJS 模板并显式处理 import
 - 带 TypeScript 测试、CI 和 Maven 冒烟编译
@@ -77,6 +91,12 @@ npm run build
 
 ```bash
 npm start -- --help
+```
+
+### 直接通过 npx 运行
+
+```bash
+npx springboot-generator-cli@latest --help
 ```
 
 ### 创建项目
@@ -99,6 +119,12 @@ cd demo-app
 sg g module User
 ```
 
+使用自定义业务字段：
+
+```bash
+sg g module Product --fields "name:string,price:decimal,active:boolean"
+```
+
 ### 使用旧式兼容模式
 
 ```bash
@@ -106,6 +132,27 @@ sg new old-style-app --style layered
 sg g module User --style layered
 sg g controller User --style layered
 ```
+
+## 通过 Codex / skills.sh 使用
+
+安装 Skill：
+
+```bash
+npx skills add https://github.com/YIbaikaishui/springboot-generator-cli --skill springboot-generator
+```
+
+适用场景：
+
+- 让 agent 生成新的 Spring Boot 项目骨架
+- 在现有项目里生成 DDD 风格业务模块
+- 希望优先使用稳定、可编译验证的脚手架，而不是一次性 AI 输出
+
+Skill 的定位：
+
+- CLI 是 engine
+- Skill 是分发层和工作流层
+- 默认优先调用 `npx springboot-generator-cli@latest`
+- 在本仓库开发时可回退到 `node dist/cli.js`
 
 ## 生成结构
 
@@ -162,16 +209,22 @@ user/
 - `entity` - 旧式分层兼容生成器
 - `dto` - 旧式分层兼容生成器
 
-| 选项                          | 说明                                  |
-| ----------------------------- | ------------------------------------- |
-| `-p, --package <package>`     | 包名后缀                              |
-| `-d, --directory <directory>` | 目标目录，默认 `src/main/java`        |
-| `-m, --module <module>`       | 显式指定模块目录名                    |
-| `-s, --style <style>`         | 模块风格：`ddd-modulith` 或 `layered` |
-| `--crud`                      | 生成 CRUD 操作                        |
-| `--rest`                      | 生成 REST 接口                        |
-| `--jpa`                       | 包含 JPA 相关行为                     |
-| `--lombok`                    | 包含 Lombok 相关行为                  |
+| 选项                          | 说明                                           |
+| ----------------------------- | ---------------------------------------------- |
+| `-f, --fields <fields>`       | 模块业务字段，例如 `name:string,price:decimal` |
+| `-p, --package <package>`     | 包名后缀                                       |
+| `-d, --directory <directory>` | 目标目录，默认 `src/main/java`                 |
+| `-m, --module <module>`       | 显式指定模块目录名                             |
+| `-s, --style <style>`         | 模块风格：`ddd-modulith` 或 `layered`          |
+| `--no-crud`                   | 跳过 CRUD 风格样板代码                         |
+| `--no-rest`                   | 跳过 REST 接口                                 |
+| `--no-jpa`                    | 跳过 JPA 相关输出                              |
+| `--no-lombok`                 | 跳过 Lombok 注解                               |
+
+当前 v1 说明：
+
+- `ddd-modulith` 目前有意保持默认的 CRUD + REST + JPA 基线
+- 对 DDD 模块使用 `--no-crud`、`--no-rest`、`--no-jpa` 时，CLI 会明确提示当前暂不支持
 
 ### `sg info`
 
@@ -209,6 +262,7 @@ npm run smoke:maven
 - `npm run build`
 - `npx vitest run`
 - `npm run smoke:maven`
+- `npm pack --dry-run`
 
 ## 仓库结构
 

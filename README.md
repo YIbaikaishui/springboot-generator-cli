@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>DDD-friendly Spring Boot scaffolding with a Modulith-ready layout and a legacy layered compatibility mode.</strong>
+  <strong>AI-friendly, compile-safe Spring Boot scaffolding with DDD-friendly defaults, a Modulith-ready layout, and an installable Codex skill.</strong>
 </p>
 
 <p align="center">
@@ -24,6 +24,7 @@
   <a href="#why-this-structure">Why this structure</a> ·
   <a href="#features">Features</a> ·
   <a href="#quick-start">Quick Start</a> ·
+  <a href="#use-with-codex--skillssh">Codex Skill</a> ·
   <a href="#generated-structure">Generated Structure</a> ·
   <a href="#commands">Commands</a> ·
   <a href="#development">Development</a>
@@ -41,6 +42,7 @@ It defaults to a pragmatic architecture:
 - `sg g module` generates feature modules in `api / application / domain / infrastructure`
 - `--style layered` keeps the old layered generators available for compatibility
 - v1 follows Modulith-style package boundaries without forcing Spring Modulith as a hard dependency
+- the CLI is the engine, and the bundled skill is the workflow layer for Codex and similar agents
 
 ## Why This Structure
 
@@ -55,10 +57,22 @@ They tend to create:
 
 This project makes package-by-feature the default so each business module stays easy to read, test, and extend.
 
+## Why Not Just Ask AI?
+
+AI can generate Spring Boot code, but teams still need stable scaffolding.
+
+- prompts drift, but project structure should not
+- ad hoc output often breaks imports, build files, or persistence wiring
+- agents need deterministic commands they can rerun and verify
+
+This project gives agents a reusable primitive: deterministic, compile-safe Spring Boot structure with a documented CLI and an installable skill.
+
 ## Features
 
 - DDD-friendly module scaffolding
 - Modulith-ready package layout
+- Custom business fields via `--fields`
+- Installable skill for Codex and similar agents
 - Legacy layered compatibility mode
 - EJS templates with explicit imports
 - TypeScript tests, CI, and Maven smoke compilation
@@ -77,6 +91,12 @@ npm run build
 
 ```bash
 npm start -- --help
+```
+
+### Run directly with npx
+
+```bash
+npx springboot-generator-cli@latest --help
 ```
 
 ### Create a project
@@ -99,6 +119,12 @@ Recommended defaults:
 sg g module User
 ```
 
+With custom business fields:
+
+```bash
+sg g module Product --fields "name:string,price:decimal,active:boolean"
+```
+
 ### Use legacy compatibility mode
 
 ```bash
@@ -106,6 +132,27 @@ sg new old-style-app --style layered
 sg g module User --style layered
 sg g controller User --style layered
 ```
+
+## Use With Codex / skills.sh
+
+Install the skill:
+
+```bash
+npx skills add https://github.com/YIbaikaishui/springboot-generator-cli --skill springboot-generator
+```
+
+Use it when you want an agent to:
+
+- scaffold a new Spring Boot project with `ddd-modulith` defaults
+- generate a DDD-friendly module inside an existing codebase
+- prefer stable, compile-safe scaffolding over one-off AI file generation
+
+Skill behavior:
+
+- the CLI is the engine
+- the skill is the distribution and workflow layer
+- the skill prefers `npx springboot-generator-cli@latest`
+- when developing this repo itself, it can fall back to `node dist/cli.js`
 
 ## Generated Structure
 
@@ -164,14 +211,20 @@ Supported types:
 
 | Option                        | Description                                                       |
 | ----------------------------- | ----------------------------------------------------------------- |
+| `-f, --fields <fields>`       | Business fields for modules, e.g. `name:string,price:decimal`     |
 | `-p, --package <package>`     | Package name suffix                                               |
 | `-d, --directory <directory>` | Target directory, default `src/main/java`                         |
 | `-m, --module <module>`       | Explicit module directory name                                    |
 | `-s, --style <style>`         | Module style: `ddd-modulith` or `layered`, default `ddd-modulith` |
-| `--crud`                      | Generate CRUD operations                                          |
-| `--rest`                      | Generate REST endpoints                                           |
-| `--jpa`                       | Include JPA-related behavior                                      |
-| `--lombok`                    | Include Lombok-related behavior                                   |
+| `--no-crud`                   | Skip CRUD-oriented boilerplate                                    |
+| `--no-rest`                   | Skip REST endpoints                                               |
+| `--no-jpa`                    | Skip JPA-related output                                           |
+| `--no-lombok`                 | Skip Lombok annotations                                           |
+
+Current v1 note:
+
+- `ddd-modulith` intentionally requires the default CRUD + REST + JPA baseline
+- `--no-crud`, `--no-rest`, and `--no-jpa` are currently rejected for DDD modules with a clear CLI message
 
 ### `sg info`
 
@@ -209,6 +262,7 @@ Current CI checks:
 - `npm run build`
 - `npx vitest run`
 - `npm run smoke:maven`
+- `npm pack --dry-run`
 
 ## Repository Layout
 

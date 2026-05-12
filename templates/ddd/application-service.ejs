@@ -25,8 +25,9 @@ public class <%= className %> {
     @Transactional
     public <%= responseClassName %> create(<%= createRequestClassName %> request) {
         <%= entityName %> <%= entityNameLower %> = <%= entityName %>.create(
-                request.getName(),
-                request.getEmail()
+<% (businessFields ?? []).forEach((field, index, list) => { -%>
+                request.<%= field.getterName %>()<%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
         );
 
         return toResponse(<%= entityNameLower %>Repository.save(<%= entityNameLower %>));
@@ -49,7 +50,11 @@ public class <%= className %> {
         <%= entityName %> <%= entityNameLower %> = <%= entityNameLower %>Repository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("<%= entityName %> not found with id: " + id));
 
-        <%= entityNameLower %>.updateProfile(request.getName(), request.getEmail());
+        <%= entityNameLower %>.update(
+<% (businessFields ?? []).forEach((field, index, list) => { -%>
+                request.<%= field.getterName %>()<%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
+        );
         return toResponse(<%= entityNameLower %>Repository.save(<%= entityNameLower %>));
     }
 
@@ -60,11 +65,9 @@ public class <%= className %> {
 
     private <%= responseClassName %> toResponse(<%= entityName %> <%= entityNameLower %>) {
         <%= responseClassName %> response = new <%= responseClassName %>();
-        response.setId(<%= entityNameLower %>.getId());
-        response.setName(<%= entityNameLower %>.getName());
-        response.setEmail(<%= entityNameLower %>.getEmail());
-        response.setCreatedAt(<%= entityNameLower %>.getCreatedAt());
-        response.setUpdatedAt(<%= entityNameLower %>.getUpdatedAt());
+<% (fields ?? []).forEach((field) => { -%>
+        response.<%= field.setterName %>(<%= entityNameLower %>.<%= field.getterName %>());
+<% }) -%>
         return response;
     }
 }

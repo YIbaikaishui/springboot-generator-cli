@@ -1,90 +1,66 @@
 package <%= packageName %>;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
+<% (imports ?? []).forEach((importPath) => { -%>
+import <%= importPath %>;
+<% }) -%>
 
 public class <%= className %> {
 
-    private Long id;
-    private String name;
-    private String email;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+<% (fields ?? []).forEach((field) => { -%>
+    private <%= field.type %> <%= field.name %>;
+<% }) -%>
 
     public <%= className %>() {
     }
 
     public <%= className %>(
-            Long id,
-            String name,
-            String email,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+<% (fields ?? []).forEach((field, index, list) => { -%>
+            <%= field.type %> <%= field.name %><%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
     ) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+<% (fields ?? []).forEach((field) => { -%>
+        this.<%= field.name %> = <%= field.name %>;
+<% }) -%>
     }
 
-    public static <%= className %> create(String name, String email) {
+    public static <%= className %> create(
+<% (businessFields ?? []).forEach((field, index, list) => { -%>
+            <%= field.type %> <%= field.name %><%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
+    ) {
         LocalDateTime now = LocalDateTime.now();
         return new <%= className %>(
                 null,
-                requireValue(name, "name"),
-                requireValue(email, "email"),
+<% (businessFields ?? []).forEach((field) => { -%>
+                <%- field.isString ? `requireValue(${field.name}, "${field.name}")` : field.name %>,
+<% }) -%>
                 now,
                 now
         );
     }
 
-    public void updateProfile(String name, String email) {
-        this.name = requireValue(name, "name");
-        this.email = requireValue(email, "email");
+    public void update(
+<% (businessFields ?? []).forEach((field, index, list) => { -%>
+            <%= field.type %> <%= field.name %><%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
+    ) {
+<% (businessFields ?? []).forEach((field) => { -%>
+        this.<%= field.name %> = <%- field.isString ? `requireValue(${field.name}, "${field.name}")` : field.name %>;
+<% }) -%>
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
+<% (fields ?? []).forEach((field) => { -%>
+    public <%= field.type %> <%= field.getterName %>() {
+        return <%= field.name %>;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void <%= field.setterName %>(<%= field.type %> <%= field.name %>) {
+        this.<%= field.name %> = <%- field.isString ? `requireValue(${field.name}, "${field.name}")` : field.name %>;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = requireValue(name, "name");
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = requireValue(email, "email");
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
+<% }) -%>
+<% if ((businessFields ?? []).some((field) => field.isString)) { -%>
     private static String requireValue(String value, String fieldName) {
         String normalized = Objects.requireNonNull(value, fieldName + " must not be null").trim();
         if (normalized.isEmpty()) {
@@ -92,4 +68,5 @@ public class <%= className %> {
         }
         return normalized;
     }
+<% } -%>
 }

@@ -1,23 +1,31 @@
 {
   "name": "springboot-generator-cli",
   "version": "1.0.0",
-  "description": "A DDD-friendly Spring Boot generator CLI with Modulith-ready module scaffolding",
+  "description": "An AI-friendly, compile-safe Spring Boot scaffolding core with DDD-friendly defaults",
   "license": "MIT",
   "author": "",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "sg": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
+    "dev": "tsc --watch -p tsconfig.build.json",
     "start": "node dist/cli.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest",
     "smoke:maven": "node scripts/smoke-generate.mjs",
+    "pack:check": "npm pack --dry-run",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -27,8 +35,23 @@
     "scaffold",
     "java",
     "ddd",
-    "modulith"
+    "modulith",
+    "codex",
+    "skills",
+    "agent",
+    "skills.sh"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YIbaikaishui/springboot-generator-cli.git"
+  },
+  "homepage": "https://github.com/YIbaikaishui/springboot-generator-cli#readme",
+  "bugs": {
+    "url": "https://github.com/YIbaikaishui/springboot-generator-cli/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18.0.0"
   },

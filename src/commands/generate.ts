@@ -1,10 +1,6 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import type {
-  GenerateCommandOptions,
-  GeneratorStyle,
-  GeneratorType,
-} from '../types/index.js';
+import type { GenerateCommandOptions, GeneratorStyle, GeneratorType } from '../types/index.js';
 import { generateController } from '../generators/controller.js';
 import { generateService } from '../generators/service.js';
 import { generateRepository } from '../generators/repository.js';
@@ -12,6 +8,7 @@ import { generateEntity } from '../generators/entity.js';
 import { generateDto } from '../generators/dto.js';
 import { generateModule } from '../generators/module.js';
 import { exists } from '../utils/file.js';
+import { parseFieldDefinitions } from '../utils/fields.js';
 import path from 'path';
 
 const VALID_TYPES: GeneratorType[] = [
@@ -32,6 +29,26 @@ const LEGACY_LAYERED_TYPES: GeneratorType[] = [
 ];
 
 const VALID_STYLES: GeneratorStyle[] = ['ddd-modulith', 'layered'];
+
+export function validateDddModuleOptions(
+  type: string,
+  options: Pick<GenerateCommandOptions, 'style' | 'crud' | 'rest' | 'jpa'>
+): string | null {
+  const style = options.style ?? 'ddd-modulith';
+  if (type !== 'module' || style !== 'ddd-modulith') {
+    return null;
+  }
+  if (options.crud === false) {
+    return "The DDD module generator does not support '--no-crud' yet. Keep the default CRUD-oriented skeleton or use '--style layered'.";
+  }
+  if (options.rest === false) {
+    return "The DDD module generator does not support '--no-rest' yet. Keep the default REST API output or use '--style layered'.";
+  }
+  if (options.jpa === false) {
+    return "The DDD module generator does not support '--no-jpa' yet. Keep the default JPA persistence output or use '--style layered'.";
+  }
+  return null;
+}
 
 export async function generateCommand(
   type: string,
@@ -57,7 +74,7 @@ export async function generateCommand(
 
   // Check if it's a Spring Boot project
   if (!exists(path.join(cwd, 'pom.xml')) && !exists(path.join(cwd, 'build.gradle'))) {
-    console.log(chalk.yellow('Warning: This doesn\'t appear to be a Spring Boot project.'));
+    console.log(chalk.yellow("Warning: This doesn't appear to be a Spring Boot project."));
     const { proceed } = await inquirer.prompt([
       {
         type: 'confirm',
@@ -75,6 +92,12 @@ export async function generateCommand(
   if (!VALID_STYLES.includes(style)) {
     console.log(chalk.red(`Invalid style: ${style}`));
     console.log(chalk.gray(`Valid styles: ${VALID_STYLES.join(', ')}`));
+    process.exit(1);
+  }
+
+  const dddOptionError = validateDddModuleOptions(type, options);
+  if (dddOptionError) {
+    console.log(chalk.red(dddOptionError));
     process.exit(1);
   }
 
@@ -103,6 +126,7 @@ export async function generateCommand(
     rest: options.rest ?? true,
     jpa: options.jpa ?? true,
     lombok: options.lombok ?? true,
+    fields: options.fields ? parseFieldDefinitions(options.fields) : undefined,
   };
 
   console.log();
@@ -115,8 +139,8 @@ export async function generateCommand(
   if (LEGACY_LAYERED_TYPES.includes(type as GeneratorType) && style !== 'layered') {
     console.log(
       chalk.yellow(
-        `Note: '${type}' is a legacy layered generator. Use 'sg g module ${name}' for the default DDD/Modulith-ready layout.`,
-      ),
+        `Note: '${type}' is a legacy layered generator. Use 'sg g module ${name}' for the default DDD/Modulith-ready layout.`
+      )
     );
     console.log();
   }

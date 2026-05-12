@@ -1,38 +1,42 @@
 package <%= packageName %>;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+<% (imports ?? []).forEach((importPath) => { -%>
+import <%= importPath %>;
+<% }) -%>
 
 public class <%= className %> {
 
-    @NotBlank
-    private String name;
-
+<% (businessFields ?? []).forEach((field) => { -%>
+<% if (field.isEmail) { -%>
     @Email
+<% } -%>
+<% if (field.isString) { -%>
     @NotBlank
-    private String email;
+<% } -%>
+    private <%= field.type %> <%= field.name %>;
 
+<% }) -%>
     public <%= className %>() {
     }
 
-    public <%= className %>(String name, String email) {
-        this.name = name;
-        this.email = email;
+    public <%= className %>(
+<% (businessFields ?? []).forEach((field, index, list) => { -%>
+            <%= field.type %> <%= field.name %><%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
+    ) {
+<% (businessFields ?? []).forEach((field) => { -%>
+        this.<%= field.name %> = <%= field.name %>;
+<% }) -%>
     }
 
-    public String getName() {
-        return name;
+<% (businessFields ?? []).forEach((field) => { -%>
+    public <%= field.type %> <%= field.getterName %>() {
+        return <%= field.name %>;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void <%= field.setterName %>(<%= field.type %> <%= field.name %>) {
+        this.<%= field.name %> = <%= field.name %>;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
+<% }) -%>
 }

@@ -37,5 +37,8 @@ jobs:
       - name: Run tests
         run: npx vitest run
 
+      - name: Check npm package contents
+        run: npm pack --dry-run
+
       - name: Smoke compile generated Maven project
         run: npm run smoke:maven

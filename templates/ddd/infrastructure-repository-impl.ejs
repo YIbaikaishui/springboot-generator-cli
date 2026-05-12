@@ -3,8 +3,9 @@ package <%= packageName %>;
 import <%= domainPackage %>.<%= entityName %>;
 import <%= domainPackage %>.<%= repositoryInterfaceName %>;
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDateTime;
+<% (imports ?? []).forEach((importPath) => { -%>
+import <%= importPath %>;
+<% }) -%>
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,21 +44,21 @@ public class <%= className %> implements <%= repositoryInterfaceName %> {
 
     private <%= entityName %> toDomain(<%= jpaEntityName %> entity) {
         return new <%= entityName %>(
-                entity.getId(),
-                entity.getName(),
-                entity.getEmail(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+<% (fields ?? []).forEach((field, index, list) => { -%>
+                entity.<%= field.getterName %>()<%= index < list.length - 1 ? ',' : '' %>
+<% }) -%>
         );
     }
 
     private <%= jpaEntityName %> toJpaEntity(<%= entityName %> <%= entityNameLower %>) {
         <%= jpaEntityName %> entity = new <%= jpaEntityName %>();
-        entity.setId(<%= entityNameLower %>.getId());
-        entity.setName(<%= entityNameLower %>.getName());
-        entity.setEmail(<%= entityNameLower %>.getEmail());
-        entity.setCreatedAt(defaultTimestamp(<%= entityNameLower %>.getCreatedAt()));
-        entity.setUpdatedAt(defaultTimestamp(<%= entityNameLower %>.getUpdatedAt()));
+<% (fields ?? []).forEach((field) => { -%>
+<% if (field.isAudit) { -%>
+        entity.<%= field.setterName %>(defaultTimestamp(<%= entityNameLower %>.<%= field.getterName %>()));
+<% } else { -%>
+        entity.<%= field.setterName %>(<%= entityNameLower %>.<%= field.getterName %>());
+<% } -%>
+<% }) -%>
         return entity;
     }
 

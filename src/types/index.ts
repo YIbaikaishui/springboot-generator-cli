@@ -10,6 +10,7 @@ export interface GeneratorOptions {
   rest?: boolean;
   jpa?: boolean;
   lombok?: boolean;
+  fields?: FieldDefinition[];
 }
 
 export interface GenerateCommandOptions {
@@ -21,6 +22,7 @@ export interface GenerateCommandOptions {
   rest?: boolean;
   jpa?: boolean;
   lombok?: boolean;
+  fields?: string;
 }
 
 export interface ProjectConfig {
@@ -31,13 +33,7 @@ export interface ProjectConfig {
   dependencies: string[];
 }
 
-export type GeneratorType = 
-  | 'controller' 
-  | 'service' 
-  | 'repository' 
-  | 'entity' 
-  | 'dto' 
-  | 'module';
+export type GeneratorType = 'controller' | 'service' | 'repository' | 'entity' | 'dto' | 'module';
 
 export interface TemplateData {
   className: string;
@@ -77,15 +73,24 @@ export interface TemplateData {
   hasCrud: boolean;
   hasRest: boolean;
   fields?: FieldDefinition[];
+  businessFields?: FieldDefinition[];
   imports?: string[];
 }
 
 export interface FieldDefinition {
   name: string;
   type: string;
+  capitalizedName?: string;
+  getterName?: string;
+  setterName?: string;
   isId?: boolean;
+  isAudit?: boolean;
+  isBusiness?: boolean;
+  isEmail?: boolean;
+  isString?: boolean;
   isNullable?: boolean;
   columnDefinition?: string;
+  importPath?: string;
 }
 
 export interface CliConfig {
